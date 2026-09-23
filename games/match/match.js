@@ -1,0 +1,15 @@
+const $=id=>document.getElementById(id),board=$('board');
+const squishes=[['#ff638f','★'],['#ffd84d','☀'],['#48dfbd','♥'],['#54bfff','⚡'],['#9a68ff','✦'],['#ff8d4d','●'],['#67d7e8','♣'],['#ef75df','◆'],['#8bd65c','▲'],['#ff9fbd','☁']];
+let level=1,score=0,time=45,streak=1,first=null,lock=false,pairsLeft=0,timer=null,playing=false,lastMatch=0;
+function shuffle(a){for(let i=a.length-1;i;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pairCount(){return Math.min(10,3+level)}
+function build(){board.innerHTML='';first=null;lock=true;let n=pairCount(),cards=shuffle([...Array(n).keys(),...Array(n).keys()]);pairsLeft=n;let cols=n<=4?4:n<=6?4:5;board.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+cards.forEach((id,idx)=>{let b=document.createElement('button');b.className='tile flipped';b.dataset.id=id;b.dataset.idx=idx;b.innerHTML=`<span class="front"></span><span class="back"><span class="face" style="background:${squishes[id][0]}"><i class="mouth"></i><b class="accent">${squishes[id][1]}</b></span></span>`;b.onclick=()=>pick(b);board.appendChild(b)});
+$('message').textContent=`Memorize ${n} pairs...`;setTimeout(()=>{[...board.children].forEach(x=>x.classList.remove('flipped'));lock=false;$('message').textContent='Find every pair!'},Math.max(800,1900-level*90));update()}
+function pick(c){if(!playing||lock||c===first||c.classList.contains('matched'))return;c.classList.add('flipped');if(!first){first=c;return}lock=true;if(c.dataset.id===first.dataset.id){let now=Date.now(),quick=now-lastMatch<2800;streak=quick?Math.min(8,streak+1):1;lastMatch=now;score+=10*streak;c.classList.add('matched');first.classList.add('matched');pairsLeft--;first=null;lock=false;$('message').textContent=streak>=3?`Squish streak ×${streak}!`:'Perfect match!';if(!pairsLeft)setTimeout(nextLevel,450)}else{streak=1;let a=first;first=null;$('message').textContent='Not quite!';setTimeout(()=>{a.classList.remove('flipped');c.classList.remove('flipped');lock=false},650)}update()}
+function nextLevel(){score+=level*20;time=Math.min(60,time+5);level++;$('message').textContent='Level up! +5 seconds';setTimeout(build,450);update()}
+function update(){$('score').textContent=score;$('time').textContent=time;$('streak').textContent='×'+streak;$('level').textContent=level;$('bar').style.width=Math.max(0,time/45*100)+'%'}
+function tick(){if(!playing)return;time--;update();if(time<=0)end()}
+function start(){level=1;score=0;time=45;streak=1;playing=true;lastMatch=0;$('start').classList.add('hidden');$('over').classList.add('hidden');clearInterval(timer);build();timer=setInterval(tick,1000)}
+function end(){playing=false;clearInterval(timer);lock=true;let best=Math.max(+localStorage.smBest||0,score);localStorage.smBest=best;$('final').textContent=`Score ${score} • Reached level ${level} • Best score ${best}.`;$('over').classList.remove('hidden')}
+$('startBtn').onclick=start;$('again').onclick=start;
